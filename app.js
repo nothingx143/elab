@@ -612,7 +612,8 @@
   // Render Editor
   function renderEditor() {
     if (!currentQuestion) return;
-    const rawCode = currentQuestion.code || '// No solution code available.';
+    let rawCode = currentQuestion.code || '// No solution code available.';
+    rawCode = rawCode.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n{3,}/g, '\n\n');
     const lines = rawCode.split('\n');
 
     // Populate gutter line numbers

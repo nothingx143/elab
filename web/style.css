@@ -780,8 +780,16 @@ body {
   text-align: right;
   color: #8c8c8c !important;
   user-select: none;
-  font-size: 12.5px !important;
+  font-family: Monaco, Menlo, Consolas, "Courier New", monospace !important;
+  font-size: 13.5px !important;
   line-height: 1.6 !important;
+  box-sizing: border-box;
+}
+
+.official-editor-gutter span {
+  display: block;
+  line-height: 1.6 !important;
+  height: 1.6em;
 }
 
 .official-editor-code {
@@ -791,6 +799,7 @@ body {
   background: #ffffff !important;
   color: #262626 !important;
   overflow-x: auto;
+  font-family: Monaco, Menlo, Consolas, "Courier New", monospace !important;
   font-size: 13.5px !important;
   line-height: 1.6 !important;
 }
@@ -798,6 +807,8 @@ body {
 .official-editor-code code {
   color: #262626 !important;
   font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 /* Right Side Analysis Cards */
