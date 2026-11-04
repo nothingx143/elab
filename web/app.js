@@ -618,9 +618,13 @@
 
     // Populate gutter line numbers
     if (elEditorGutter) {
+      elEditorGutter.style.display = 'block';
+      elEditorGutter.style.width = '44px';
+      elEditorGutter.style.minWidth = '44px';
+      elEditorGutter.style.flexShrink = '0';
       let gutterHtml = '';
       for (let i = 1; i <= lines.length; i++) {
-        gutterHtml += `<span>${i}</span>`;
+        gutterHtml += `<div style="display:block;line-height:1.6em;height:1.6em;text-align:right;user-select:none;color:#8c8c8c;font-size:13.5px;font-family:inherit;">${i}</div>`;
       }
       elEditorGutter.innerHTML = gutterHtml;
     }

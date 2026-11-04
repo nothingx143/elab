@@ -774,6 +774,8 @@ body {
 
 .official-editor-gutter {
   width: 44px;
+  min-width: 44px;
+  flex-shrink: 0;
   background: #fafafa !important;
   border-right: 1px solid #f0f0f0 !important;
   padding: 12px 6px;
@@ -786,6 +788,7 @@ body {
   box-sizing: border-box;
 }
 
+.official-editor-gutter div,
 .official-editor-gutter span {
   display: block;
   line-height: 1.6 !important;
