@@ -7,7 +7,7 @@
   <!-- Official SRM eLab Ant Design Stylesheet -->
   <link rel="stylesheet" href="official_elab.css">
   <!-- Enhanced Companion Styling & Layout Fixes -->
-  <link rel="stylesheet" href="style.css?v=20261030_0710">
+  <link rel="stylesheet" href="style.css?v=20261104_1005">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -48,8 +48,23 @@
       </div>
 
       <div class="header-right-cluster">
+        <!-- Course Dropdown Selector -->
+        <div class="course-dropdown-selector-wrapper">
+          <label for="courseSelect" class="course-select-label">
+            <svg viewBox="64 64 896 896" width="13" height="13" fill="#0166ff" style="vertical-align: -2px; margin-right: 4px;">
+              <path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM492 400h40c4.4 0 8-3.6 8-8v-40c0-4.4-3.6-8-8-8h-40c-4.4 0-8 3.6-8 8v40c0 4.4 3.6 8 8 8zm0 160h40c4.4 0 8-3.6 8-8v-40c0-4.4-3.6-8-8-8h-40c-4.4 0-8 3.6-8 8v40c0 4.4 3.6 8 8 8zm0 160h40c4.4 0 8-3.6 8-8v-40c0-4.4-3.6-8-8-8h-40c-4.4 0-8 3.6-8 8v40c0 4.4 3.6 8 8 8z"/>
+            </svg>
+            <span>Course:</span>
+          </label>
+          <select id="courseSelect" class="course-dropdown-select" title="Switch Course">
+            <option value="os">OS (Operating Systems)</option>
+            <option value="dsa" selected>DSA (Data Structures)</option>
+            <option value="app">APP (Advanced Programming)</option>
+          </select>
+        </div>
+
         <div class="course-buttons-group">
-          <button class="course-btn active" type="button" id="btnCourseOS">OS (115)</button>
+          <button class="course-btn active" type="button" id="btnCourseOS">DSA (250)</button>
           <button class="course-btn" type="button" id="btnCoursePrac">Prac Codes (27)</button>
         </div>
 
@@ -130,7 +145,7 @@
         <!-- Blue Header Banner -->
         <div class="challenge-blue-header">
           <span class="challenge-header-title">CHALLENGE INFORMATION</span>
-          <span class="challenge-header-course" id="challengeHeaderCourse">COURSE: OS</span>
+          <span class="challenge-header-course" id="challengeHeaderCourse">COURSE: DSA</span>
         </div>
 
         <div class="challenge-card-body">
@@ -156,7 +171,7 @@
                   <!-- Row 0: Course, Session, Question Info -->
                   <tr class="ant-descriptions-row">
                     <th class="ant-descriptions-item-label" style="width: 140px;"><span>Course</span></th>
-                    <td class="ant-descriptions-item-content"><span>OS</span></td>
+                    <td class="ant-descriptions-item-content"><span id="lblCourseTable">OS</span></td>
                     <th class="ant-descriptions-item-label" style="width: 140px;"><span>Session</span></th>
                     <td class="ant-descriptions-item-content"><span id="lblSession">CPU Scheduling</span></td>
                     <th class="ant-descriptions-item-label" style="width: 160px;"><span>Question Information</span></th>
@@ -372,7 +387,7 @@
               <rect x="13" y="13" width="9" height="9" rx="2" fill="#faad14" />
             </svg>
           </span>
-          <span class="modal-title-text" id="modalNavTitle">SRMIST eLab OS Challenges (115 Questions)</span>
+          <span class="modal-title-text" id="modalNavTitle">SRMIST eLab DSA Challenges (250 Questions)</span>
         </div>
         <button id="btnCloseModalNav" type="button" class="modal-close-btn" title="Close" onclick="window.closeChallengesModal && window.closeChallengesModal()">✕</button>
       </div>
@@ -396,8 +411,11 @@
   </div>
 
   <!-- Scripts -->
-  <script src="questions_data.js?v=20261030_0750"></script>
-  <script src="prac_data.js?v=20261030_0750"></script>
-  <script src="app.js?v=20261030_0750"></script>
+  <script src="questions_data.js?v=20261101_02"></script>
+  <script src="prac_data.js?v=20261101_02"></script>
+  <script src="dsa_data.js?v=20261104_1005"></script>
+  <script src="dsa_prac_data.js?v=20261104_1005"></script>
+  <script src="app_data.js?v=20261104_1005"></script>
+  <script src="app.js?v=20261104_1005"></script>
 </body>
 </html>

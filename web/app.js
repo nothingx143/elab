@@ -2,9 +2,13 @@
 (function() {
   'use strict';
 
-  let currentMode = 'os'; // 'os' or 'prac'
+  let currentCourse = 'dsa'; // 'os', 'dsa', or 'app'
+  let currentMode = 'dsa'; // 'os', 'prac', 'dsa', or 'app'
   let osQuestions = [];
   let pracQuestions = [];
+  let dsaQuestions = [];
+  let dsaPracQuestions = [];
+  let appQuestions = [];
   let allQuestions = [];
   let currentQuestion = null;
   let currentIndex = 0;
@@ -15,12 +19,14 @@
   // DOM Elements
   const elProblemText = document.getElementById('problemStatementText');
   const elLblSession = document.getElementById('lblSession');
+  const elLblCourseTable = document.getElementById('lblCourseTable');
   const elChallengeHeaderCourse = document.getElementById('challengeHeaderCourse');
   const elLblLevelDot = document.getElementById('lblLevelDot');
   const elLblChallengeDot = document.getElementById('lblChallengeDot');
   const elBannerSolvedText = document.getElementById('bannerSolvedText');
   const elBtnCourseOS = document.getElementById('btnCourseOS');
   const elBtnCoursePrac = document.getElementById('btnCoursePrac');
+  const elCourseSelect = document.getElementById('courseSelect');
 
   // Search Elements
   const elGlobalSearchInput = document.getElementById('globalSearchInput');
@@ -81,81 +87,151 @@
   function init() {
     osQuestions = window.ELAB_QUESTIONS || [];
     pracQuestions = window.PRAC_EXPERIMENTS || [];
+    dsaQuestions = window.DSA_QUESTIONS || [];
+    dsaPracQuestions = window.DSA_PRAC_EXPERIMENTS || [];
+    appQuestions = window.APP_QUESTIONS || [];
 
-    if (!osQuestions.length && !pracQuestions.length) {
-      if (elProblemText) elProblemText.innerText = 'No questions loaded. Check questions_data.js and prac_data.js.';
+    if (!osQuestions.length && !pracQuestions.length && !dsaQuestions.length && !dsaPracQuestions.length) {
+      if (elProblemText) elProblemText.innerText = 'No questions loaded. Check data scripts.';
       return;
     }
 
     // Dynamic Live Course Counts
     if (elBtnCourseOS) {
-      elBtnCourseOS.textContent = `OS (${osQuestions.length})`;
+      elBtnCourseOS.textContent = `DSA (${dsaQuestions.length})`;
     }
     if (elBtnCoursePrac) {
-      elBtnCoursePrac.textContent = `Prac Codes (${pracQuestions.length})`;
+      elBtnCoursePrac.textContent = `Prac Codes (${dsaPracQuestions.length})`;
     }
 
     setupEvents();
     startClock();
 
-    // Check URL hash or query, e.g. #prac=5 or ?prac=5 or #q=34
+    // Check URL hash or query, e.g. #dsa_prac=2 or #dsa=5 or #prac=5 or #q=34 or #app=1
     const urlStr = decodeURIComponent((window.location.hash || '') + ' ' + (window.location.search || ''));
+    const dsaPracMatch = urlStr.match(/dsa_prac[=_](\d+)/i);
+    const dsaMatch = urlStr.match(/dsa[=_](\d+)/i);
+    const appMatch = urlStr.match(/app[=_](\d+)/i);
     const pracMatch = urlStr.match(/prac[=_](\d+)/i);
     const qMatch = urlStr.match(/q[=_](\d+)/i);
 
-    if (pracMatch) {
+    if (dsaPracMatch) {
+      const dpNum = parseInt(dsaPracMatch[1], 10);
+      setCourse('dsa', dpNum, 'prac');
+    } else if (dsaMatch) {
+      const dNum = parseInt(dsaMatch[1], 10);
+      setCourse('dsa', dNum, 'dsa');
+    } else if (appMatch) {
+      const aNum = parseInt(appMatch[1], 10);
+      setCourse('app', aNum, 'app');
+    } else if (pracMatch) {
       const pNum = parseInt(pracMatch[1], 10);
-      setMode('prac', pNum);
+      setCourse('os', pNum, 'prac');
     } else if (qMatch) {
       const qNum = parseInt(qMatch[1], 10);
-      setMode('os', qNum);
+      setCourse('os', qNum, 'os');
     } else {
-      setMode('os', 0);
+      setCourse('dsa', 1, 'dsa');
     }
 
     // Listen to hashchange
     window.addEventListener('hashchange', () => {
       const hStr = decodeURIComponent(window.location.hash || '');
+      const dpm = hStr.match(/dsa_prac=(\d+)/i);
+      const dm = hStr.match(/dsa=(\d+)/i);
+      const am = hStr.match(/app=(\d+)/i);
       const pm = hStr.match(/prac=(\d+)/i);
       const qm = hStr.match(/q=(\d+)/i);
-      if (pm) {
+
+      if (dpm) {
+        const dpNum = parseInt(dpm[1], 10);
+        if (currentCourse !== 'dsa' || currentMode !== 'prac' || (currentQuestion && currentQuestion.challenge !== dpNum)) {
+          setCourse('dsa', dpNum, 'prac');
+        }
+      } else if (dm) {
+        const dNum = parseInt(dm[1], 10);
+        if (currentCourse !== 'dsa' || currentMode !== 'dsa' || (currentQuestion && currentQuestion.challenge !== dNum)) {
+          setCourse('dsa', dNum, 'dsa');
+        }
+      } else if (am) {
+        const aNum = parseInt(am[1], 10);
+        if (currentCourse !== 'app' || (currentQuestion && currentQuestion.challenge !== aNum)) {
+          setCourse('app', aNum, 'app');
+        }
+      } else if (pm) {
         const pNum = parseInt(pm[1], 10);
-        if (currentMode !== 'prac' || (currentQuestion && currentQuestion.challenge !== pNum)) {
-          setMode('prac', pNum);
+        if (currentCourse !== 'os' || currentMode !== 'prac' || (currentQuestion && currentQuestion.challenge !== pNum)) {
+          setCourse('os', pNum, 'prac');
         }
       } else if (qm) {
         const qNum = parseInt(qm[1], 10);
-        if (currentMode !== 'os' || (currentQuestion && currentQuestion.challenge !== qNum)) {
-          setMode('os', qNum);
+        if (currentCourse !== 'os' || currentMode !== 'os' || (currentQuestion && currentQuestion.challenge !== qNum)) {
+          setCourse('os', qNum, 'os');
         }
       }
     });
   }
 
-  // Switch Mode between OS eLab (115) and Prac Codes (27)
-  function setMode(mode, targetIdOrIdx) {
-    currentMode = mode === 'prac' ? 'prac' : 'os';
-    allQuestions = currentMode === 'prac' ? pracQuestions : osQuestions;
+  // Switch Course between OS, DSA, and APP
+  function setCourse(course, targetIdOrIdx, targetMode) {
+    currentCourse = course;
+    if (elCourseSelect) elCourseSelect.value = course;
 
-    // Toggle button active state
-    if (elBtnCourseOS) {
-      if (currentMode === 'os') elBtnCourseOS.classList.add('active');
-      else elBtnCourseOS.classList.remove('active');
-    }
-    if (elBtnCoursePrac) {
-      if (currentMode === 'prac') elBtnCoursePrac.classList.add('active');
-      else elBtnCoursePrac.classList.remove('active');
+    if (course === 'dsa') {
+      currentMode = targetMode === 'prac' ? 'prac' : 'dsa';
+      allQuestions = currentMode === 'prac' ? dsaPracQuestions : dsaQuestions;
+      if (elBtnCourseOS) {
+        elBtnCourseOS.textContent = `DSA (${dsaQuestions.length})`;
+        elBtnCourseOS.style.display = 'inline-flex';
+        if (currentMode === 'dsa') elBtnCourseOS.classList.add('active');
+        else elBtnCourseOS.classList.remove('active');
+      }
+      if (elBtnCoursePrac) {
+        elBtnCoursePrac.textContent = `Prac Codes (${dsaPracQuestions.length})`;
+        elBtnCoursePrac.style.display = 'inline-flex';
+        if (currentMode === 'prac') elBtnCoursePrac.classList.add('active');
+        else elBtnCoursePrac.classList.remove('active');
+      }
+      if (elChallengeHeaderCourse) {
+        elChallengeHeaderCourse.textContent = currentMode === 'prac' ? 'COURSE: DSA LAB PRACTICALS' : 'COURSE: DATA STRUCTURES & ALGORITHMS (DSA)';
+      }
+    } else if (course === 'app') {
+      currentMode = 'app';
+      allQuestions = appQuestions;
+      if (elBtnCourseOS) {
+        elBtnCourseOS.textContent = `APP (${appQuestions.length})`;
+        elBtnCourseOS.classList.add('active');
+        elBtnCourseOS.style.display = 'inline-flex';
+      }
+      if (elBtnCoursePrac) {
+        elBtnCoursePrac.style.display = 'none';
+      }
+      if (elChallengeHeaderCourse) {
+        elChallengeHeaderCourse.textContent = 'COURSE: APP';
+      }
+    } else {
+      currentCourse = 'os';
+      currentMode = (targetMode === 'prac' || (targetIdOrIdx && targetIdOrIdx.toString().startsWith('prac'))) ? 'prac' : 'os';
+      allQuestions = currentMode === 'prac' ? pracQuestions : osQuestions;
+      if (elBtnCourseOS) {
+        elBtnCourseOS.textContent = `OS (${osQuestions.length})`;
+        elBtnCourseOS.style.display = 'inline-flex';
+        if (currentMode === 'os') elBtnCourseOS.classList.add('active');
+        else elBtnCourseOS.classList.remove('active');
+      }
+      if (elBtnCoursePrac) {
+        elBtnCoursePrac.textContent = `Prac Codes (${pracQuestions.length})`;
+        elBtnCoursePrac.style.display = 'inline-flex';
+        if (currentMode === 'prac') elBtnCoursePrac.classList.add('active');
+        else elBtnCoursePrac.classList.remove('active');
+      }
+      if (elChallengeHeaderCourse) {
+        elChallengeHeaderCourse.textContent = currentMode === 'os' ? 'COURSE: OS' : 'COURSE: OS LAB PRACTICALS';
+      }
     }
 
-    // Update challenge header course
-    if (elChallengeHeaderCourse) {
-      elChallengeHeaderCourse.textContent = currentMode === 'os' ? 'COURSE: OS' : 'COURSE: OS LAB PRACTICALS';
-    }
-
-    // Rebuild search index for active dataset
     buildSearchIndex();
 
-    // Determine target index
     let targetIdx = 0;
     if (typeof targetIdOrIdx === 'number') {
       const foundIdx = allQuestions.findIndex(q => q.challenge === targetIdOrIdx);
@@ -173,16 +249,101 @@
     if (overlay && overlay.style.display !== 'none') {
       const title = document.getElementById('modalNavTitle');
       if (title) {
-        title.textContent = currentMode === 'os'
-          ? `SRMIST eLab OS Challenges (${osQuestions.length} Questions)`
-          : `Operating Systems Lab Practical Codes (${pracQuestions.length} Experiments)`;
+        if (currentCourse === 'dsa') {
+          title.textContent = currentMode === 'prac'
+            ? `DSA Lab Practical Codes (${dsaPracQuestions.length} Experiments)`
+            : `SRMIST eLab DSA Challenges (${dsaQuestions.length} Questions)`;
+        } else if (currentCourse === 'app') {
+          title.textContent = `SRMIST eLab APP Challenges (${appQuestions.length} Questions)`;
+        } else {
+          title.textContent = currentMode === 'os'
+            ? `SRMIST eLab OS Challenges (${osQuestions.length} Questions)`
+            : `Operating Systems Lab Practical Codes (${pracQuestions.length} Experiments)`;
+        }
       }
       renderModalCards('');
     }
   }
 
-  // Expose setMode globally
+  // Switch Mode within current course (eLab vs Prac Codes)
+  function setMode(mode, targetIdOrIdx) {
+    if (currentCourse === 'dsa') {
+      currentMode = mode === 'prac' ? 'prac' : 'dsa';
+      allQuestions = currentMode === 'prac' ? dsaPracQuestions : dsaQuestions;
+
+      if (elBtnCourseOS) {
+        if (currentMode === 'dsa') elBtnCourseOS.classList.add('active');
+        else elBtnCourseOS.classList.remove('active');
+      }
+      if (elBtnCoursePrac) {
+        if (currentMode === 'prac') elBtnCoursePrac.classList.add('active');
+        else elBtnCoursePrac.classList.remove('active');
+      }
+      if (elChallengeHeaderCourse) {
+        elChallengeHeaderCourse.textContent = currentMode === 'prac' ? 'COURSE: DSA LAB PRACTICALS' : 'COURSE: DATA STRUCTURES & ALGORITHMS (DSA)';
+      }
+    } else if (currentCourse === 'app') {
+      currentMode = 'app';
+      allQuestions = appQuestions;
+      if (elBtnCourseOS) elBtnCourseOS.classList.add('active');
+      if (elBtnCoursePrac) elBtnCoursePrac.style.display = 'none';
+      if (elChallengeHeaderCourse) elChallengeHeaderCourse.textContent = 'COURSE: APP';
+    } else {
+      currentCourse = 'os';
+      currentMode = mode === 'prac' ? 'prac' : 'os';
+      allQuestions = currentMode === 'prac' ? pracQuestions : osQuestions;
+
+      if (elBtnCourseOS) {
+        if (currentMode === 'os') elBtnCourseOS.classList.add('active');
+        else elBtnCourseOS.classList.remove('active');
+      }
+      if (elBtnCoursePrac) {
+        if (currentMode === 'prac') elBtnCoursePrac.classList.add('active');
+        else elBtnCoursePrac.classList.remove('active');
+      }
+      if (elChallengeHeaderCourse) {
+        elChallengeHeaderCourse.textContent = currentMode === 'os' ? 'COURSE: OS' : 'COURSE: OS LAB PRACTICALS';
+      }
+    }
+
+    buildSearchIndex();
+
+    let targetIdx = 0;
+    if (typeof targetIdOrIdx === 'number') {
+      const foundIdx = allQuestions.findIndex(q => q.challenge === targetIdOrIdx);
+      if (foundIdx !== -1) {
+        targetIdx = foundIdx;
+      } else if (targetIdOrIdx >= 0 && targetIdOrIdx < allQuestions.length) {
+        targetIdx = targetIdOrIdx;
+      }
+    }
+
+    selectQuestion(targetIdx);
+
+    // If modal is open, update title and re-render
+    const overlay = document.getElementById('modalNavigatorOverlay');
+    if (overlay && overlay.style.display !== 'none') {
+      const title = document.getElementById('modalNavTitle');
+      if (title) {
+        if (currentCourse === 'dsa') {
+          title.textContent = currentMode === 'prac'
+            ? `DSA Lab Practical Codes (${dsaPracQuestions.length} Experiments)`
+            : `SRMIST eLab DSA Challenges (${dsaQuestions.length} Questions)`;
+        } else if (currentCourse === 'app') {
+          title.textContent = `SRMIST eLab APP Challenges (${appQuestions.length} Questions)`;
+        } else {
+          title.textContent = currentMode === 'os'
+            ? `SRMIST eLab OS Challenges (${osQuestions.length} Questions)`
+            : `Operating Systems Lab Practical Codes (${pracQuestions.length} Experiments)`;
+        }
+      }
+      renderModalCards('');
+    }
+  }
+
+  // Expose setMode and setCourse globally
   window.setMode = setMode;
+  window.setCourse = setCourse;
 
   // Live Clock (matches official eLab format: October 30th 2026, 6:04:20 Am)
   function startClock() {
@@ -222,17 +383,46 @@
     // Reset stdin/output states for new question
     currentStdinTab = 0;
     currentOutputTab = 0;
-    outputShowingMatch = false;
+    // For practical mode, automatically display the output so students can see it right away for exams
+    outputShowingMatch = (currentMode === 'prac');
 
     // Update URL hash
-    if (currentMode === 'prac') {
+    if (currentCourse === 'dsa') {
+      if (currentMode === 'prac') {
+        window.history.replaceState(null, null, `#dsa_prac=${currentQuestion.challenge}`);
+      } else {
+        window.history.replaceState(null, null, `#dsa=${currentQuestion.challenge}`);
+      }
+    } else if (currentCourse === 'app') {
+      window.history.replaceState(null, null, `#app=${currentQuestion.challenge}`);
+    } else if (currentMode === 'prac') {
       window.history.replaceState(null, null, `#prac=${currentQuestion.challenge}`);
     } else {
       window.history.replaceState(null, null, `#q=${currentQuestion.challenge}`);
     }
 
     // Dots & Labels
-    if (currentMode === 'prac') {
+    if (elLblCourseTable) {
+      elLblCourseTable.textContent = currentCourse === 'dsa' ? 'DSA' : (currentCourse === 'app' ? 'APP' : 'OS');
+    }
+    if (currentCourse === 'dsa') {
+      if (currentMode === 'prac') {
+        if (elLblLevelDot) elLblLevelDot.textContent = `● Practical`;
+        if (elLblChallengeDot) elLblChallengeDot.textContent = `● Experiment ${currentQuestion.challenge}`;
+        if (elLblSession) elLblSession.textContent = currentQuestion.topic || 'DSA Lab Practical';
+        if (elChallengeHeaderCourse) elChallengeHeaderCourse.textContent = 'COURSE: DSA LAB PRACTICALS';
+      } else {
+        if (elLblLevelDot) elLblLevelDot.textContent = `● Level ${currentQuestion.level || 1}`;
+        if (elLblChallengeDot) elLblChallengeDot.textContent = `● Challenge ${currentQuestion.level_challenge || currentQuestion.challenge}`;
+        if (elLblSession) elLblSession.textContent = currentQuestion.topic || 'DSA';
+        if (elChallengeHeaderCourse) elChallengeHeaderCourse.textContent = 'COURSE: DATA STRUCTURES & ALGORITHMS (DSA)';
+      }
+    } else if (currentCourse === 'app') {
+      if (elLblLevelDot) elLblLevelDot.textContent = `● Level 1`;
+      if (elLblChallengeDot) elLblChallengeDot.textContent = `● Challenge ${currentQuestion.challenge}`;
+      if (elLblSession) elLblSession.textContent = currentQuestion.topic || 'APP';
+      if (elChallengeHeaderCourse) elChallengeHeaderCourse.textContent = 'COURSE: APP';
+    } else if (currentMode === 'prac') {
       if (elLblLevelDot) elLblLevelDot.textContent = `● Practical`;
       if (elLblChallengeDot) elLblChallengeDot.textContent = `● Experiment ${currentQuestion.challenge}`;
       if (elLblSession) elLblSession.textContent = currentQuestion.topic || 'OS Lab Manual';
@@ -253,9 +443,10 @@
       elProblemText.textContent = currentQuestion.description || currentQuestion.title || "No description provided.";
     }
 
-    // Solved Banner Status (Green for 100% full pass, Yellow for partial)
-    const isPartial = currentMode === 'os' && (currentQuestion.partial || (currentQuestion.status && (currentQuestion.status.includes('88') || currentQuestion.status.includes('77') || currentQuestion.status.includes('Partial') || currentQuestion.status.includes('Pending'))));
-    updateSolvedBanners(isPartial);
+    // Solved Banner Status (Green for 100% full pass, Yellow for partial, Orange for pending)
+    const isPartial = Boolean(currentQuestion.partial);
+    const isUnsolved = !currentQuestion.solved && !isPartial;
+    updateSolvedBanners(isPartial, isUnsolved);
 
     // Test Cases Cards
     renderTestCases();
@@ -271,7 +462,7 @@
   }
 
   // Update Solved Banners (Top and Bottom)
-  function updateSolvedBanners(isPartial) {
+  function updateSolvedBanners(isPartial, isUnsolved) {
     const banners = [
       document.getElementById('solvedAlertBox'),
       document.getElementById('solvedAlertBoxBottom')
@@ -280,7 +471,20 @@
     banners.forEach(el => {
       if (!el) return;
       el.style.display = 'flex';
-      if (isPartial) {
+      if (isUnsolved) {
+        el.className = 'official-solved-alert alert-partial';
+        el.innerHTML = `
+          <div class="alert-content-left">
+            <span class="alert-check-icon">
+              <svg viewBox="64 64 896 896" width="16" height="16" fill="#ff4d4f">
+                <path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v288c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48 48 0 100-96 48 48 0 000 96z"/>
+              </svg>
+            </span>
+            <span id="bannerSolvedText">This challenge is currently pending or unverified in this course suite.</span>
+          </div>
+          <button class="alert-dismiss-btn" type="button" onclick="this.closest('.official-solved-alert').style.display='none'">✕</button>
+        `;
+      } else if (isPartial) {
         el.className = 'official-solved-alert alert-partial';
         el.innerHTML = `
           <div class="alert-content-left">
@@ -296,7 +500,7 @@
       } else {
         el.className = 'official-solved-alert';
         const msg = currentMode === 'prac' 
-          ? 'Verified Operating Systems Lab Practical Code (Ready to Run & Compile)' 
+          ? (currentCourse === 'dsa' ? 'Verified DSA Lab Practical Code (Ready to Run & Compile)' : 'Verified Operating Systems Lab Practical Code (Ready to Run & Compile)')
           : 'You have already solved this challenge ! Though you can run the code with different logic !';
         el.innerHTML = `
           <div class="alert-content-left">
@@ -827,9 +1031,17 @@
     overlay.style.display = 'flex';
     const title = document.getElementById('modalNavTitle');
     if (title) {
-      title.textContent = currentMode === 'os'
-        ? `SRMIST eLab OS Challenges (${osQuestions.length} Questions)`
-        : `Operating Systems Lab Practical Codes (${pracQuestions.length} Experiments)`;
+      if (currentCourse === 'dsa') {
+        title.textContent = currentMode === 'prac'
+          ? `DSA Lab Practical Codes (${dsaPracQuestions.length} Experiments)`
+          : `SRMIST eLab DSA Challenges (${dsaQuestions.length} Questions)`;
+      } else if (currentCourse === 'app') {
+        title.textContent = `SRMIST eLab APP Challenges (${appQuestions.length} Questions)`;
+      } else {
+        title.textContent = currentMode === 'os'
+          ? `SRMIST eLab OS Challenges (${osQuestions.length} Questions)`
+          : `Operating Systems Lab Practical Codes (${pracQuestions.length} Experiments)`;
+      }
     }
     const filterInput = document.getElementById('txtModalFilter');
     if (filterInput) {
@@ -870,7 +1082,7 @@
 
     let matchedQuestions = [];
     qList.forEach((q, idx) => {
-      const isPartial = currentMode === 'os' && (q.partial || (q.status && (q.status.includes('88') || q.status.includes('77') || q.status.includes('Partial') || q.status.includes('Pending'))));
+      const isPartial = Boolean(q.partial);
       if (!query) {
         matchedQuestions.push({ q, idx, isPartial });
         return;
@@ -902,16 +1114,17 @@
     let html = '';
     matchedQuestions.forEach(({ q, idx, isPartial }) => {
       const isActive = idx === currentIndex;
-      const statusClass = isPartial ? 'solved-partial' : 'solved-full';
-      const dotClass = isPartial ? 'dot-yellow' : 'dot-green';
+      const isUnsolved = !q.solved && !q.partial;
+      const statusClass = isUnsolved ? 'solved-unsolved' : (isPartial ? 'solved-partial' : 'solved-full');
+      const dotClass = isUnsolved ? 'dot-red' : (isPartial ? 'dot-yellow' : 'dot-green');
       const chalLabel = currentMode === 'prac' ? `Experiment ${q.challenge}` : `Challenge ${q.challenge}`;
-      const topicTag = currentMode === 'prac' ? (q.filename || q.topic || 'PRACTICAL') : (q.topic || 'OS');
+      const topicTag = currentMode === 'prac' ? (q.filename || q.topic || 'PRACTICAL') : (q.topic || (currentCourse === 'dsa' ? 'DSA' : 'OS'));
       const descSnippet = q.description ? q.description.replace(/\s+/g, ' ').slice(0, 110) + '...' : (q.title || 'No description');
       html += `
         <div class="modal-challenge-card ${statusClass} ${isActive ? 'active' : ''}" data-index="${idx}">
           <div class="card-top-row">
             <div style="display: flex; align-items: center;">
-              <span class="card-status-dot ${dotClass}" title="${isPartial ? 'Partially Solved (Yellow)' : 'Fully Solved (Green)'}"></span>
+              <span class="card-status-dot ${dotClass}" title="${isUnsolved ? 'Unsolved (Pending)' : (isPartial ? 'Partially Solved (Yellow)' : 'Fully Solved (Green)')}"></span>
               <span class="card-chal-title">${escapeHtml(chalLabel)}</span>
             </div>
             <span class="card-topic-tag">${escapeHtml(topicTag)}</span>
@@ -938,11 +1151,19 @@
 
   // Setup Event Handlers
   function setupEvents() {
+    // Course Dropdown Selector
+    if (elCourseSelect) {
+      elCourseSelect.addEventListener('change', (e) => {
+        setCourse(e.target.value, 0);
+      });
+    }
+
     // Mode switcher buttons
     if (elBtnCourseOS) {
       elBtnCourseOS.addEventListener('click', () => {
-        if (currentMode !== 'os') {
-          setMode('os', 0);
+        const targetMode = currentCourse === 'dsa' ? 'dsa' : (currentCourse === 'app' ? 'app' : 'os');
+        if (currentMode !== targetMode) {
+          setMode(targetMode, 0);
         }
       });
     }
